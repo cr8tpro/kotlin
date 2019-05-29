@@ -18,8 +18,6 @@ class KotlinModuleModificationTracker(val module: Module) : ModificationTracker 
     private val kotlinModCountListener =
         KotlinCodeBlockModificationListener.getInstance(module.project)
 
-    private val psiModificationTracker = PsiModificationTracker.SERVICE.getInstance(module.project)
-
     private val dependencies by lazy {
         module.cached(CachedValueProvider {
             CachedValueProvider.Result.create(
@@ -34,7 +32,7 @@ class KotlinModuleModificationTracker(val module: Module) : ModificationTracker 
     }
 
     override fun getModificationCount(): Long {
-        val currentGlobalCount = psiModificationTracker.outOfCodeBlockModificationCount
+        val currentGlobalCount = kotlinModCountListener.kotlinOOCBTracker.modificationCount
 
         if (kotlinModCountListener.hasPerModuleModificationCounts()) {
             val selfCount = kotlinModCountListener.getModificationCount(module)
