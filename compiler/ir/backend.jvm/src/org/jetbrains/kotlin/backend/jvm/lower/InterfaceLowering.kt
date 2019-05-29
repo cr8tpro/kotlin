@@ -9,23 +9,31 @@ import org.jetbrains.kotlin.backend.common.ClassLoweringPass
 import org.jetbrains.kotlin.backend.common.descriptors.WrappedSimpleFunctionDescriptor
 import org.jetbrains.kotlin.backend.common.ir.copyTo
 import org.jetbrains.kotlin.backend.common.ir.copyTypeParametersFrom
+import org.jetbrains.kotlin.backend.common.ir.passTypeArgumentsFrom
 import org.jetbrains.kotlin.backend.common.lower.InitializersLowering.Companion.clinitName
 import org.jetbrains.kotlin.backend.common.lower.VariableRemapper
 import org.jetbrains.kotlin.backend.common.phaser.makeIrFilePhase
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
+import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.impl.IrFunctionImpl
+import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrExpressionBodyImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrSimpleFunctionSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.resolve.jvm.annotations.JVM_DEFAULT_FQ_NAME
 
 internal val interfacePhase = makeIrFilePhase(
     ::InterfaceLowering,
@@ -51,8 +59,13 @@ private class InterfaceLowering(val context: JvmBackendContext) : IrElementTrans
                 val element = context.declarationFactory.getDefaultImplsFunction(function)
                 members.add(element)
                 element.body = function.body?.patchDeclarationParents(element)
-                function.body = null
-                //TODO reset modality to abstract
+                if (function.isJvmDefault()) {
+                    // TODO: don't touch function and only generate element / DefaultImpls when needed.
+                    function.body = IrExpressionBodyImpl(callDefaultImpls(element, function))
+                } else {
+                    function.body = null
+                    //TODO reset modality to abstract
+                }
             }
         }
 
@@ -67,6 +80,33 @@ private class InterfaceLowering(val context: JvmBackendContext) : IrElementTrans
         Visibilities.isPrivate(function.visibility) && function.name != clinitName ||
                 function.origin == IrDeclarationOrigin.FUNCTION_FOR_DEFAULT_PARAMETER ||
                 function.origin == JvmLoweredDeclarationOrigin.SYNTHETIC_METHOD_FOR_PROPERTY_ANNOTATIONS
+
+    private fun IrFunction.isJvmDefault(): Boolean =
+        (hasAnnotation(JVM_DEFAULT_FQ_NAME) ||
+                (this is IrSimpleFunction && correspondingPropertySymbol?.owner?.hasAnnotation(JVM_DEFAULT_FQ_NAME) == true)) &&
+                context.state.target.bytecodeVersion >= JvmTarget.JVM_1_8.bytecodeVersion &&
+                context.state.jvmDefaultMode.isEnabled &&
+                origin != JvmLoweredDeclarationOrigin.SYNTHETIC_METHOD_FOR_PROPERTY_ANNOTATIONS
+
+    private fun callDefaultImpls(defaultImpls: IrFunction, interfaceMethod: IrFunction): IrCall {
+        val startOffset = interfaceMethod.startOffset
+        val endOffset = interfaceMethod.endOffset
+
+        return IrCallImpl(interfaceMethod.startOffset, interfaceMethod.endOffset, interfaceMethod.returnType, defaultImpls.symbol).apply {
+            passTypeArgumentsFrom(interfaceMethod)
+
+            var offset = 0
+            interfaceMethod.dispatchReceiverParameter?.let {
+                putValueArgument(offset++, IrGetValueImpl(startOffset, endOffset, it.symbol))
+            }
+            interfaceMethod.extensionReceiverParameter?.let {
+                putValueArgument(offset++, IrGetValueImpl(startOffset, endOffset, it.symbol))
+            }
+            interfaceMethod.valueParameters.forEachIndexed { i, it ->
+                putValueArgument(i + offset, IrGetValueImpl(startOffset, endOffset, it.symbol))
+            }
+        }
+    }
 }
 
 

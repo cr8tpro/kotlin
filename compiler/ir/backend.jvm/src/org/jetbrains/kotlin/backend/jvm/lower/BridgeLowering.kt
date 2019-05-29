@@ -58,13 +58,13 @@ private class BridgeLowering(val context: JvmBackendContext) : ClassLoweringPass
     private val specialBridgeMethods = SpecialBridgeMethods(context)
 
     override fun lower(irClass: IrClass) {
-        // TODO: Bridges should be generated for @JvmDefaults, so the interface check is too optimistic.
-        if (irClass.isInterface || irClass.origin == JvmLoweredDeclarationOrigin.DEFAULT_IMPLS) {
+        if (irClass.origin == JvmLoweredDeclarationOrigin.DEFAULT_IMPLS) {
             return
         }
 
         for (member in irClass.declarations.filterIsInstance<IrSimpleFunction>()) {
-            createBridges(member)
+            if (!irClass.isInterface || member.body != null)
+                createBridges(member)
         }
     }
 
@@ -376,7 +376,7 @@ private class BridgeLowering(val context: JvmBackendContext) : ClassLoweringPass
     private inner class FunctionHandleForIrFunction(val irFunction: IrSimpleFunction) : FunctionHandle {
         override val isDeclaration get() = irFunction.origin != IrDeclarationOrigin.FAKE_OVERRIDE
         override val isAbstract get() = irFunction.modality == Modality.ABSTRACT
-        override val mayBeUsedAsSuperImplementation get() = !irFunction.parentAsClass.isInterface
+        override val mayBeUsedAsSuperImplementation get() = !irFunction.parentAsClass.isInterface || irFunction.body != null
 
         override fun getOverridden() = irFunction.overriddenSymbols.map { FunctionHandleForIrFunction(it.owner) }
 
