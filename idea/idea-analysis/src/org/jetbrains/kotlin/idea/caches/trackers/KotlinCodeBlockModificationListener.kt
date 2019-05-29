@@ -29,7 +29,7 @@ val KOTLIN_CONSOLE_KEY = Key.create<Boolean>("kotlin.console")
  * Tested in OutOfBlockModificationTestGenerated
  */
 class KotlinCodeBlockModificationListener(
-    modificationTracker: PsiModificationTracker,
+    private val modificationTracker: PsiModificationTracker,
     project: Project,
     private val treeAspect: TreeAspect
 ) {
@@ -44,7 +44,7 @@ class KotlinCodeBlockModificationListener(
     private var perModuleChangesHighWatermark: Long? = null
 
     fun getModificationCount(module: Module): Long {
-        return perModuleModCount[module] ?: perModuleChangesHighWatermark ?: modificationTrackerImpl.outOfCodeBlockModificationCount
+        return perModuleModCount[module] ?: perModuleChangesHighWatermark ?: modificationTracker.outOfCodeBlockModificationCount
     }
 
     fun hasPerModuleModificationCounts() = perModuleChangesHighWatermark != null
@@ -52,6 +52,7 @@ class KotlinCodeBlockModificationListener(
     init {
         val model = PomManager.getModel(project)
         val messageBusConnection = project.messageBus.connect()
+
         model.addModelListener(object : PomModelListener {
             override fun isAspectChangeInteresting(aspect: PomModelAspect): Boolean {
                 return aspect == treeAspect
@@ -60,25 +61,26 @@ class KotlinCodeBlockModificationListener(
             override fun modelChanged(event: PomModelEvent) {
                 val changeSet = event.getChangeSet(treeAspect) as TreeChangeEvent? ?: return
                 val file = changeSet.rootElement.psi.containingFile as? KtFile ?: return
+
                 val changedElements = changeSet.changedElements
                 // When a code fragment is reparsed, Intellij doesn't do an AST diff and considers the entire
                 // contents to be replaced, which is represented in a POM event as an empty list of changed elements
                 if (changedElements.any { getInsideCodeBlockModificationScope(it.psi) == null } || changedElements.isEmpty()) {
                     messageBusConnection.deliverImmediately()
+
                     if (file.isPhysical && !isReplLine(file.virtualFile)) {
                         lastAffectedModule = ModuleUtil.findModuleForPsiElement(file)
-                        lastAffectedModuleModCount = modificationTrackerImpl.outOfCodeBlockModificationCount
+                        lastAffectedModuleModCount = modificationTracker.outOfCodeBlockModificationCount
                         modificationTrackerImpl.incCounter()
                     }
-                    incOutOfBlockModificationCount(
-                        file
-                    )
+
+                    incOutOfBlockModificationCount(file)
                 }
             }
         })
 
         messageBusConnection.subscribe(PsiModificationTracker.TOPIC, PsiModificationTracker.Listener {
-            val newModCount = modificationTrackerImpl.outOfCodeBlockModificationCount
+            val newModCount = modificationTracker.outOfCodeBlockModificationCount
             val affectedModule = lastAffectedModule
             if (affectedModule != null && newModCount == lastAffectedModuleModCount + 1) {
                 if (perModuleChangesHighWatermark == null) {
