@@ -78,7 +78,7 @@ class ResolveElementCache(
             CachedValueProvider<MutableMap<KtElement, ResolveElementCache.CachedFullResolve>> {
                 CachedValueProvider.Result.create(
                     ContainerUtil.createConcurrentWeakKeySoftValueMap<KtElement, CachedFullResolve>(),
-                    PsiModificationTracker.OUT_OF_CODE_BLOCK_MODIFICATION_COUNT,
+                    KotlinCodeBlockModificationListener.getInstance(project).kotlinOOCBTracker,
                     resolveSession.exceptionTracker
                 )
             },

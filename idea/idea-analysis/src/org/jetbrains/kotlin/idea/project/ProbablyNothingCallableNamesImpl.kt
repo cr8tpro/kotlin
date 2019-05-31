@@ -12,6 +12,7 @@ import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.containers.SLRUCache
 import org.jetbrains.kotlin.idea.caches.project.getModuleInfo
 import org.jetbrains.kotlin.idea.caches.resolve.PerFileAnalysisCache
+import org.jetbrains.kotlin.idea.caches.trackers.KotlinCodeBlockModificationListener
 import org.jetbrains.kotlin.idea.stubindex.KotlinProbablyNothingFunctionShortNameIndex
 import org.jetbrains.kotlin.idea.stubindex.KotlinProbablyNothingPropertyShortNameIndex
 import org.jetbrains.kotlin.psi.KtFile
@@ -28,6 +29,6 @@ class ProbablyNothingCallableNamesImpl(project: Project) : ProbablyNothingCallab
 private inline fun createCachedValue(project: Project, crossinline names: () -> Collection<String>) =
     CachedValuesManager.getManager(project).createCachedValue(
         {
-            CachedValueProvider.Result.create(names(), PsiModificationTracker.OUT_OF_CODE_BLOCK_MODIFICATION_COUNT)
+            CachedValueProvider.Result.create(names(), KotlinCodeBlockModificationListener.getInstance(project).kotlinOOCBTracker)
         }, false
     )

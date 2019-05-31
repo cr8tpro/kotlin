@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.idea.caches.PerModulePackageCacheService
 import org.jetbrains.kotlin.idea.caches.project.IdeaModuleInfo
 import org.jetbrains.kotlin.idea.caches.project.ModuleSourceInfo
 import org.jetbrains.kotlin.idea.caches.project.projectSourceModules
+import org.jetbrains.kotlin.idea.caches.trackers.KotlinCodeBlockModificationListener
 import org.jetbrains.kotlin.idea.stubindex.KotlinExactPackagesIndex
 import org.jetbrains.kotlin.idea.stubindex.PackageIndexUtil
 import org.jetbrains.kotlin.idea.stubindex.SubpackagesIndexService
@@ -109,7 +110,7 @@ class PluginDeclarationProviderFactory(
                 packageExists = $packageExists, cachedPackageExists = $cachedPackageExists,
                 oldPackageExists = $oldPackageExists,
                 SPI.packageExists = $spiPackageExists, SPI = $subpackagesIndex,
-                OOCB count = ${PsiManager.getInstance(project).modificationTracker.outOfCodeBlockModificationCount}
+                OOCB count = ${KotlinCodeBlockModificationListener.getInstance(project).kotlinOOCBTracker.modificationCount}
                 moduleModificationCount = $moduleModificationCount
             """.trimIndent()
 

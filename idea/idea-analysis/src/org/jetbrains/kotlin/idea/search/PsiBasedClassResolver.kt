@@ -28,6 +28,7 @@ import org.jetbrains.annotations.TestOnly
 import org.jetbrains.kotlin.asJava.ImpreciseResolveResult
 import org.jetbrains.kotlin.asJava.ImpreciseResolveResult.*
 import org.jetbrains.kotlin.idea.caches.project.getNullableModuleInfo
+import org.jetbrains.kotlin.idea.caches.trackers.KotlinCodeBlockModificationListener
 import org.jetbrains.kotlin.idea.compiler.IDELanguageSettingsProvider
 import org.jetbrains.kotlin.idea.project.TargetPlatformDetector
 import org.jetbrains.kotlin.idea.project.findAnalyzerServices
@@ -79,7 +80,7 @@ class PsiBasedClassResolver @TestOnly constructor(private val targetClassFqName:
                 {
                     CachedValueProvider.Result(
                         PsiBasedClassResolver(target),
-                        PsiModificationTracker.OUT_OF_CODE_BLOCK_MODIFICATION_COUNT
+                        KotlinCodeBlockModificationListener.getInstance(target.project).kotlinOOCBTracker
                     )
                 }, false
             )
