@@ -51,19 +51,18 @@ private val counterpartNames = mapOf(
 class ScopeFunctionConversionInspection : AbstractKotlinInspection() {
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
         return callExpressionVisitor { expression ->
-            val counterpartName = getCounterpart(expression)
-            if (counterpartName != null) {
-                holder.registerProblem(
-                    expression.calleeExpression!!,
-                    "Call is replaceable with another scope function",
-                    ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
-                    if (counterpartName == "also" || counterpartName == "let")
-                        ConvertScopeFunctionToParameter(counterpartName)
-                    else
-                        ConvertScopeFunctionToReceiver(counterpartName)
-                )
-            }
-
+//            val counterpartName = getCounterpart(expression)
+//            if (counterpartName != null) {
+//                holder.registerProblem(
+//                    expression.calleeExpression!!,
+//                    "Call is replaceable with another scope function",
+//                    ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+//                    if (counterpartName == "also" || counterpartName == "let")
+//                        ConvertScopeFunctionToParameter(counterpartName)
+//                    else
+//                        ConvertScopeFunctionToReceiver(counterpartName)
+//                )
+//            }
         }
     }
 }

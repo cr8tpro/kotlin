@@ -84,16 +84,7 @@ class KotlinCodeBlockModificationListener(
 
             override fun modelChanged(event: PomModelEvent) {
                 val changeSet = event.getChangeSet(treeAspect) as TreeChangeEvent? ?: return
-                val file = changeSet.rootElement.psi.containingFile ?: return
-                val ktFile = file as? KtFile
-                if (ktFile == null) {
-                    if (file.isPhysical) {
-                        // Change in other language
-                        println("NO!")
-                    }
-
-                    return
-                }
+                val ktFile = changeSet.rootElement.psi.containingFile as? KtFile ?: return
 
                 val changedElements = changeSet.changedElements
                 // When a code fragment is reparsed, Intellij doesn't do an AST diff and considers the entire
