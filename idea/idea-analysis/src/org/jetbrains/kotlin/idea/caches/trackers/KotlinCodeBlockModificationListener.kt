@@ -109,17 +109,15 @@ class KotlinCodeBlockModificationListener(
         messageBusConnection.subscribe(PsiModificationTracker.TOPIC, PsiModificationTracker.Listener {
             @Suppress("UnstableApiUsage") val kotlinTrackerInternalIDECount =
                 modificationTrackerImpl.forLanguage(KotlinLanguage.INSTANCE).modificationCount
-//            if (kotlinModificationTracker == kotlinTrackerInternalIDECount) {
-//                // Some update that we are not sure is from Kotlin language
-//                kotlinOOCBTrackerImpl.incModificationCount()
-//            } else {
-//                if (hasOOCBChanges) {
-//                    kotlinOOCBTrackerImpl.incModificationCount()
-//                }
-//                hasOOCBChanges = false
-//            }
-
-            kotlinOOCBTrackerImpl.incModificationCount()
+            if (kotlinModificationTracker == kotlinTrackerInternalIDECount) {
+                // Some update that we are not sure is from Kotlin language
+                kotlinOOCBTrackerImpl.incModificationCount()
+            } else {
+                if (hasOOCBChanges) {
+                    kotlinOOCBTrackerImpl.incModificationCount()
+                }
+                hasOOCBChanges = false
+            }
 
             kotlinModificationTracker = kotlinTrackerInternalIDECount
 
@@ -151,7 +149,7 @@ class KotlinCodeBlockModificationListener(
         }
 
         if (outOfCodeBlock) {
-//            kotlinOOCBTrackerImpl.incModificationCount()
+            kotlinOOCBTrackerImpl.incModificationCount()
         }
     }
 
