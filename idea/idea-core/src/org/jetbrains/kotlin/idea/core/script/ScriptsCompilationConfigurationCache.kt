@@ -45,10 +45,10 @@ class ScriptsCompilationConfigurationCache(private val project: Project) {
 
     private val cacheLock = ReentrantReadWriteLock()
 
-    private val scriptDependenciesCache = SLRUCacheWithLock<RefinementResults>()
+    private val scriptDependenciesCache = SLRUCacheWithLock<ScriptCompilationConfigurationWrapper>()
     private val scriptsModificationStampsCache = SLRUCacheWithLock<Long>()
 
-    operator fun get(virtualFile: VirtualFile): ScriptCompilationConfigurationWrapper? = cache.get(virtualFile)
+    operator fun get(virtualFile: VirtualFile): ScriptCompilationConfigurationWrapper? = scriptDependenciesCache.get(virtualFile)
 
     fun shouldRunDependenciesUpdate(file: VirtualFile): Boolean {
         return scriptsModificationStampsCache.replace(file, file.modificationStamp) != file.modificationStamp
@@ -56,9 +56,9 @@ class ScriptsCompilationConfigurationCache(private val project: Project) {
 
     private val scriptsDependenciesClasspathScopeCache = SLRUCacheWithLock<GlobalSearchScope>()
 
-    fun getScriptClasspathScope(file: VirtualFile): GlobalSearchScope {
-        return scriptsClasspathScopes.getOrPut(file) {
-            val compilationConfiguration = cache.get(file) ?: return@getOrPut GlobalSearchScope.EMPTY_SCOPE
+    fun scriptDependenciesClassFilesScope(file: VirtualFile): GlobalSearchScope {
+        return scriptsDependenciesClasspathScopeCache.getOrPut(file) {
+            val compilationConfiguration = scriptDependenciesCache.get(file) ?: return@getOrPut GlobalSearchScope.EMPTY_SCOPE
             val roots = compilationConfiguration.dependenciesClassPath
 
             val sdk = ScriptDependenciesManager.getScriptSdk(compilationConfiguration)
@@ -86,7 +86,7 @@ class ScriptsCompilationConfigurationCache(private val project: Project) {
             .filter { it != ScriptDependenciesManager.getProjectSdk(project) }
             .flatMap { it.rootProvider.getFiles(OrderRootType.CLASSES).toList() }
 
-        val scriptDependenciesClasspath = scriptDependenciesCache.getAll().flatMap { it.value.classpath }.distinct()
+        val scriptDependenciesClasspath = scriptDependenciesCache.getAll().flatMap { it.value.dependenciesClassPath }.distinct()
 
         sdkFiles + ScriptDependenciesManager.toVfsRoots(scriptDependenciesClasspath)
     }
@@ -96,7 +96,7 @@ class ScriptsCompilationConfigurationCache(private val project: Project) {
             .filter { it != ScriptDependenciesManager.getProjectSdk(project) }
             .flatMap { it.rootProvider.getFiles(OrderRootType.SOURCES).toList() }
 
-        val scriptDependenciesSources = scriptDependenciesCache.getAll().flatMap { it.value.sources }.distinct()
+        val scriptDependenciesSources = scriptDependenciesCache.getAll().flatMap { it.value.dependenciesSources }.distinct()
         sdkSources + ScriptDependenciesManager.toVfsRoots(scriptDependenciesSources)
     }
 
@@ -141,9 +141,9 @@ class ScriptsCompilationConfigurationCache(private val project: Project) {
     }
 
     fun hasNotCachedRoots(compilationConfiguration: ScriptCompilationConfigurationWrapper): Boolean {
-        return !allScriptsClasspath.containsAll(ScriptDependenciesManager.toVfsRoots(compilationConfiguration.dependenciesClassPath)) ||
-                !allScriptsSdks.contains(ScriptDependenciesManager.getScriptSdk(compilationConfiguration)) ||
-                !allLibrarySources.containsAll(ScriptDependenciesManager.toVfsRoots(compilationConfiguration.dependenciesSources))
+        return !allSdks.contains(ScriptDependenciesManager.getScriptSdk(compilationConfiguration)) ||
+                !allDependenciesClassFiles.containsAll(ScriptDependenciesManager.toVfsRoots(compilationConfiguration.dependenciesClassPath)) ||
+                !allDependenciesSources.containsAll(ScriptDependenciesManager.toVfsRoots(compilationConfiguration.dependenciesSources))
     }
 
     fun clear() {
@@ -155,7 +155,7 @@ class ScriptsCompilationConfigurationCache(private val project: Project) {
     }
 
     fun save(virtualFile: VirtualFile, new: ScriptCompilationConfigurationWrapper): Boolean {
-        val old = cache.put(virtualFile, new)
+        val old = scriptDependenciesCache.replace(virtualFile, new)
         val changed = new != old
         if (changed) {
             onChange(listOf(virtualFile))
@@ -165,7 +165,7 @@ class ScriptsCompilationConfigurationCache(private val project: Project) {
     }
 
     fun delete(virtualFile: VirtualFile): Boolean {
-        val changed = cache.remove(virtualFile)
+        val changed = scriptDependenciesCache.remove(virtualFile)
         if (changed) {
             onChange(listOf(virtualFile))
         }

@@ -80,7 +80,7 @@ class JvmGetScriptingClass : GetScriptingClass, Serializable {
         }
 
         if (baseClassLoaderIsInitialized != true) {
-            baseClassLoader = contextClassloader
+            baseClassLoader = contextClassLoader
             baseClassLoaderIsInitialized = true
         }
         // TODO: this check breaks testLazyScriptDefinition, find out the reason and fix
