@@ -107,7 +107,6 @@ class KotlinCodeBlockModificationListener(
                         hasOOCBChanges = true
                         lastAffectedModule = ModuleUtil.findModuleForPsiElement(ktFile)
                         lastAffectedModuleModCount = kotlinOOCBTracker.modificationCount
-//                        modificationTrackerImpl.incCounter()
                     }
 
                     incOutOfBlockModificationCount(ktFile)
@@ -116,9 +115,9 @@ class KotlinCodeBlockModificationListener(
         })
 
         messageBusConnection.subscribe(PsiModificationTracker.TOPIC, PsiModificationTracker.Listener {
-            @Suppress("UnstableApiUsage") val kotlinTrackerInternalCount =
+            @Suppress("UnstableApiUsage") val kotlinTrackerInternalIDECount =
                 modificationTrackerImpl.forLanguage(KotlinLanguage.INSTANCE).modificationCount
-            if (kotlinModificationTracker == kotlinTrackerInternalCount) {
+            if (kotlinModificationTracker == kotlinTrackerInternalIDECount) {
                 // Some update that we are not sure is from Kotlin language
                 unprotectedKotlinOOCBTracker.incModificationCount()
             } else {
@@ -128,7 +127,7 @@ class KotlinCodeBlockModificationListener(
                 hasOOCBChanges = false
             }
 
-            kotlinModificationTracker = kotlinTrackerInternalCount
+            kotlinModificationTracker = kotlinTrackerInternalIDECount
 
             val newModCount = kotlinOOCBTracker.modificationCount
             val affectedModule = lastAffectedModule
