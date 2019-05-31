@@ -25,11 +25,11 @@ import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker.OUT_OF_CODE_BLOCK_MODIFICATION_COUNT
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.annotations.NonNls
+import org.jetbrains.kotlin.analyzer.KotlinModificationTrackerService
 import org.jetbrains.kotlin.asJava.ImpreciseResolveResult
 import org.jetbrains.kotlin.asJava.ImpreciseResolveResult.UNSURE
 import org.jetbrains.kotlin.asJava.LightClassGenerationSupport
@@ -38,7 +38,10 @@ import org.jetbrains.kotlin.asJava.builder.InvalidLightClassDataHolder
 import org.jetbrains.kotlin.asJava.builder.LightClassData
 import org.jetbrains.kotlin.asJava.builder.LightClassDataHolder
 import org.jetbrains.kotlin.asJava.builder.LightClassDataProviderForClassOrObject
-import org.jetbrains.kotlin.asJava.elements.*
+import org.jetbrains.kotlin.asJava.elements.FakeFileForLightClass
+import org.jetbrains.kotlin.asJava.elements.KtLightIdentifier
+import org.jetbrains.kotlin.asJava.elements.KtLightModifierList
+import org.jetbrains.kotlin.asJava.elements.KtLightPsiReferenceList
 import org.jetbrains.kotlin.asJava.hasInterfaceDefaultImpls
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
@@ -339,7 +342,10 @@ abstract class KtLightClassForSourceDeclaration(
         fun create(classOrObject: KtClassOrObject): KtLightClassForSourceDeclaration? =
             CachedValuesManager.getCachedValue(classOrObject) {
                 CachedValueProvider.Result
-                    .create(createNoCache(classOrObject, KtUltraLightClass.forceUsingOldLightClasses), OUT_OF_CODE_BLOCK_MODIFICATION_COUNT)
+                    .create(
+                        createNoCache(classOrObject, KtUltraLightClass.forceUsingOldLightClasses),
+                        KotlinModificationTrackerService.getInstance(classOrObject.project).outOfBlockModificationTracker
+                    )
             }
 
         fun createNoCache(classOrObject: KtClassOrObject, forceUsingOldLightClasses: Boolean): KtLightClassForSourceDeclaration? {
