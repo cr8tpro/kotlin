@@ -59,14 +59,25 @@ class KotlinCodeBlockModificationListener(
     @Volatile
     private var hasOOCBChanges: Boolean = false
 
-    internal val kotlinOOCBTracker = object : SimpleModificationTracker() {
+    private val unprotectedKotlinOOCBTracker = object : SimpleModificationTracker() {
         override fun incModificationCount() {
             super.incModificationCount()
         }
     }
 
+    val kotlinOOCBTracker = object : SimpleModificationTracker() {
+        override fun getModificationCount(): Long {
+            return unprotectedKotlinOOCBTracker.modificationCount
+        }
+
+        override fun incModificationCount() {
+            throw java.lang.IllegalStateException("Unauthorized modifications are not allowed")
+        }
+    }
+
+
     fun getModificationCount(module: Module): Long {
-        return perModuleModCount[module] ?: perModuleChangesHighWatermark ?: modificationTracker.outOfCodeBlockModificationCount
+        return perModuleModCount[module] ?: perModuleChangesHighWatermark ?: kotlinOOCBTracker.modificationCount
     }
 
     fun hasPerModuleModificationCounts() = perModuleChangesHighWatermark != null
@@ -95,7 +106,7 @@ class KotlinCodeBlockModificationListener(
                     if (ktFile.isPhysical && !isReplLine(ktFile.virtualFile)) {
                         hasOOCBChanges = true
                         lastAffectedModule = ModuleUtil.findModuleForPsiElement(ktFile)
-                        lastAffectedModuleModCount = modificationTracker.outOfCodeBlockModificationCount
+                        lastAffectedModuleModCount = kotlinOOCBTracker.modificationCount
 //                        modificationTrackerImpl.incCounter()
                     }
 
@@ -109,10 +120,10 @@ class KotlinCodeBlockModificationListener(
                 modificationTrackerImpl.forLanguage(KotlinLanguage.INSTANCE).modificationCount
             if (kotlinModificationTracker == kotlinTrackerInternalCount) {
                 // Some update that we are not sure is from Kotlin language
-                kotlinOOCBTracker.incModificationCount()
+                unprotectedKotlinOOCBTracker.incModificationCount()
             } else {
                 if (hasOOCBChanges) {
-                    kotlinOOCBTracker.incModificationCount()
+                    unprotectedKotlinOOCBTracker.incModificationCount()
                 }
                 hasOOCBChanges = false
             }
@@ -147,7 +158,7 @@ class KotlinCodeBlockModificationListener(
         }
 
         if (outOfCodeBlock) {
-            kotlinOOCBTracker.incModificationCount()
+            unprotectedKotlinOOCBTracker.incModificationCount()
         }
     }
 
