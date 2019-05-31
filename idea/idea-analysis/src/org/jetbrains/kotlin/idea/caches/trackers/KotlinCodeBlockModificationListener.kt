@@ -9,6 +9,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.pom.PomManager
@@ -59,22 +60,13 @@ class KotlinCodeBlockModificationListener(
     @Volatile
     private var hasOOCBChanges: Boolean = false
 
-    private val unprotectedKotlinOOCBTracker = object : SimpleModificationTracker() {
+    private val kotlinOOCBTrackerImpl = object : SimpleModificationTracker() {
         override fun incModificationCount() {
             super.incModificationCount()
         }
     }
 
-    val kotlinOOCBTracker = object : SimpleModificationTracker() {
-        override fun getModificationCount(): Long {
-            return unprotectedKotlinOOCBTracker.modificationCount
-        }
-
-        override fun incModificationCount() {
-            throw java.lang.IllegalStateException("Unauthorized modifications are not allowed")
-        }
-    }
-
+    val kotlinOOCBTracker: ModificationTracker = kotlinOOCBTrackerImpl
 
     fun getModificationCount(module: Module): Long {
         return perModuleModCount[module] ?: perModuleChangesHighWatermark ?: kotlinOOCBTracker.modificationCount
@@ -117,15 +109,17 @@ class KotlinCodeBlockModificationListener(
         messageBusConnection.subscribe(PsiModificationTracker.TOPIC, PsiModificationTracker.Listener {
             @Suppress("UnstableApiUsage") val kotlinTrackerInternalIDECount =
                 modificationTrackerImpl.forLanguage(KotlinLanguage.INSTANCE).modificationCount
-            if (kotlinModificationTracker == kotlinTrackerInternalIDECount) {
-                // Some update that we are not sure is from Kotlin language
-                unprotectedKotlinOOCBTracker.incModificationCount()
-            } else {
-                if (hasOOCBChanges) {
-                    unprotectedKotlinOOCBTracker.incModificationCount()
-                }
-                hasOOCBChanges = false
-            }
+//            if (kotlinModificationTracker == kotlinTrackerInternalIDECount) {
+//                // Some update that we are not sure is from Kotlin language
+//                kotlinOOCBTrackerImpl.incModificationCount()
+//            } else {
+//                if (hasOOCBChanges) {
+//                    kotlinOOCBTrackerImpl.incModificationCount()
+//                }
+//                hasOOCBChanges = false
+//            }
+
+            kotlinOOCBTrackerImpl.incModificationCount()
 
             kotlinModificationTracker = kotlinTrackerInternalIDECount
 
@@ -157,7 +151,7 @@ class KotlinCodeBlockModificationListener(
         }
 
         if (outOfCodeBlock) {
-            unprotectedKotlinOOCBTracker.incModificationCount()
+//            kotlinOOCBTrackerImpl.incModificationCount()
         }
     }
 
