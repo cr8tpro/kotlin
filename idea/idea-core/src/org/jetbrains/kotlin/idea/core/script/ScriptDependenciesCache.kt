@@ -63,7 +63,6 @@ class ScriptDependenciesCache(private val project: Project) {
 
             val sdk = ScriptDependenciesManager.getScriptSdk(dependencies)
 
-            @Suppress("FoldInitializerAndIfToElvis")
             if (sdk == null) {
                 return@getOrPut NonClasspathDirectoriesScope.compose(ScriptDependenciesManager.toVfsRoots(roots))
             }

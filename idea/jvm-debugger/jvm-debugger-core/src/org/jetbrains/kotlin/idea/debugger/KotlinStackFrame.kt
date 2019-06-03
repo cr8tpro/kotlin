@@ -208,7 +208,6 @@ class KotlinStackFrame(frame: StackFrameProxyImpl) : JavaStackFrame(StackFrameDe
                 for (i in 0 until size) {
                     if (children.getName(i) == THIS_NAME) {
                         val valueDescriptor = (children.getValue(i) as? JavaValue)?.descriptor
-                        @Suppress("FoldInitializerAndIfToElvis")
                         if (valueDescriptor !is ThisDescriptorImpl) {
                             return null
                         }

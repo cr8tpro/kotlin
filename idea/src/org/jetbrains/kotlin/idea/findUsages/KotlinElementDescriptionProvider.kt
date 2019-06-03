@@ -140,7 +140,6 @@ class KotlinElementDescriptionProvider : ElementDescriptionProvider {
             targetElement.parent as? KtProperty
         } else targetElement as? PsiNamedElement
 
-        @Suppress("FoldInitializerAndIfToElvis")
         if (namedElement == null) {
             return if (targetElement is KtElement) "'" + StringUtil.shortenTextWithEllipsis(
                 targetElement.text.collapseSpaces(),

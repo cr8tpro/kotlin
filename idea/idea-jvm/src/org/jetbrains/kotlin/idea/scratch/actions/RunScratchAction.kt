@@ -64,7 +64,6 @@ class RunScratchAction : ScratchAction(
 
             val executor = if (isRepl) provider.createReplExecutor(scratchFile) else provider.createCompilingExecutor(scratchFile)
 
-            @Suppress("FoldInitializerAndIfToElvis")
             if (executor == null) {
                 return defaultOutputHandler.error(scratchFile, "Couldn't run ${psiFile.name}")
             }

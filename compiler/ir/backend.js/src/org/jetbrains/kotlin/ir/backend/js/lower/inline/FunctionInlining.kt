@@ -3,8 +3,6 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-@file:Suppress("FoldInitializerAndIfToElvis")
-
 package org.jetbrains.kotlin.ir.backend.js.lower.inline
 
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext

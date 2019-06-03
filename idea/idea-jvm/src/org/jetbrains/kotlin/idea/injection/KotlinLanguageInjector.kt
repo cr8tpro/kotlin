@@ -147,7 +147,6 @@ class KotlinLanguageInjector(
         }
     }
 
-    @Suppress("FoldInitializerAndIfToElvis")
     private fun computeBaseInjection(
             ktHost: KtStringTemplateExpression,
             support: KotlinLanguageInjectionSupport,

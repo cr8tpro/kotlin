@@ -70,7 +70,6 @@ class KotlinBasicStepMethodFilter(
             return false
         }
 
-        @Suppress("FoldInitializerAndIfToElvis")
         if (currentDescriptor !is CallableMemberDescriptor) return false
         if (currentDescriptor.kind != DECLARATION) return false
 
